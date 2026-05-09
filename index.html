@@ -580,6 +580,36 @@ textarea{resize:vertical;min-height:54px;}
       <button class="btn-danger-reset" onclick="resetDati()">🗑 CANCELLA TUTTI I DATI</button>
     </div>
   </div>
+
+  <!-- GITHUB SYNC -->
+  <div style="margin-top:24px;padding-bottom:20px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;color:var(--accent);margin-bottom:4px;">☁️ Sincronizzazione GitHub</div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:14px;line-height:1.6;">I dati vengono salvati su GitHub e sono accessibili da qualsiasi dispositivo.</div>
+
+    <div style="background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label>Utente GitHub</label>
+        <input type="text" id="gh-user" placeholder="es. alexsalv2-ops" oninput="salvaGhCfg()">
+      </div>
+      <div>
+        <label>Repository</label>
+        <input type="text" id="gh-repo" placeholder="es. Turni" oninput="salvaGhCfg()">
+      </div>
+      <div>
+        <label>Personal Access Token</label>
+        <input type="password" id="gh-token" placeholder="ghp_..." oninput="salvaGhCfg()">
+      </div>
+      <div id="gh-status" style="display:none;font-size:0.76rem;padding:8px 10px;border-radius:8px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-backup" style="flex:1;min-width:120px;" onclick="ghCarica()">⬇️ CARICA DA GITHUB</button>
+        <button class="btn-backup" style="flex:1;min-width:120px;background:var(--s2);color:var(--accent);border:1px solid rgba(232,255,107,0.3);" onclick="ghSalva()">⬆️ SALVA SU GITHUB</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+        <input type="checkbox" id="gh-auto" onchange="salvaGhCfg()" style="width:auto;accent-color:var(--accent);">
+        <label style="text-transform:none;font-size:0.78rem;color:var(--muted);letter-spacing:0;">Sincronizza automaticamente ad ogni modifica</label>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL DELETE -->
@@ -706,6 +736,7 @@ document.getElementById('h-data').value=todayYMD();
 document.getElementById('p-data').value=todayYMD();
 document.getElementById('foto-anno').value=new Date().getFullYear();
 loadCfg();
+loadGhCfg();
 hCheckDate();pCheckDate();
 render();
 
@@ -791,6 +822,7 @@ function salvaStorico(){
   const oreNotte=calcOreNotte(ini,fin);
   storico.push({id:Date.now(),data,tipo,ini,fin,ore,oreNotte,extra,note,festivo:fest?fest.nome:null});
   localStorage.setItem('t_storico',JSON.stringify(storico));
+  autoSync();
   document.getElementById('h-inizio').value='';
   document.getElementById('h-fine').value='';
   document.getElementById('h-extra').value='';
@@ -813,6 +845,7 @@ function salvaPiano(){
   const oreNotte=calcOreNotte(ini,fin);
   piano.push({id:Date.now(),data,tipo,ini,fin,ore,oreNotte,note,festivo:fest?fest.nome:null});
   localStorage.setItem('t_piano',JSON.stringify(piano));
+  autoSync();
   document.getElementById('p-inizio').value='';
   document.getElementById('p-fine').value='';
   document.getElementById('p-note').value='';
@@ -826,7 +859,7 @@ function closeModal(){deleteId=null;deleteType=null;document.getElementById('mod
 function doDelete(){
   if(deleteType==='storico') storico=storico.filter(t=>t.id!==deleteId), localStorage.setItem('t_storico',JSON.stringify(storico));
   else piano=piano.filter(t=>t.id!==deleteId), localStorage.setItem('t_piano',JSON.stringify(piano));
-  closeModal();render();
+  closeModal();autoSync();render();
 }
 
 // ═══════════════════════ EDIT ═══════════════════════
@@ -895,10 +928,10 @@ function salvaModifica(){
   const updated={data,tipo,ini,fin,ore,oreNotte,extra,note,festivo:fest?fest.nome:null};
   if(editType==='storico'){
     const idx=storico.findIndex(t=>t.id===editId);
-    if(idx>=0){storico[idx]={...storico[idx],...updated};localStorage.setItem('t_storico',JSON.stringify(storico));}
+    if(idx>=0){storico[idx]={...storico[idx],...updated};localStorage.setItem('t_storico',JSON.stringify(storico));autoSync();}
   }else{
     const idx=piano.findIndex(t=>t.id===editId);
-    if(idx>=0){piano[idx]={...piano[idx],...updated};localStorage.setItem('t_piano',JSON.stringify(piano));}
+    if(idx>=0){piano[idx]={...piano[idx],...updated};localStorage.setItem('t_piano',JSON.stringify(piano));autoSync();}
   }
   closeEditModal();render();
 }
@@ -1245,6 +1278,7 @@ Se l'orario di fine è 24:00 scrivi "24:00".`;
       }
 
       localStorage.setItem('t_piano', JSON.stringify(piano));
+      autoSync();
       render();
 
       let msg = `✅ Inseriti <b>${inseriti}</b> turni per <b>${nome}</b>.`;
@@ -1261,6 +1295,111 @@ Se l'orario di fine è 24:00 scrivi "24:00".`;
     input.value = '';
   };
   reader.readAsDataURL(file);
+}
+
+// ═══════════════════════ GITHUB SYNC ═══════════════════════
+let ghCfg = JSON.parse(localStorage.getItem('gh_cfg') || '{"user":"","repo":"","token":"","auto":false}');
+
+function loadGhCfg(){
+  document.getElementById('gh-user').value = ghCfg.user || '';
+  document.getElementById('gh-repo').value = ghCfg.repo || '';
+  document.getElementById('gh-token').value = ghCfg.token || '';
+  document.getElementById('gh-auto').checked = ghCfg.auto || false;
+}
+
+function salvaGhCfg(){
+  ghCfg = {
+    user: document.getElementById('gh-user').value.trim(),
+    repo: document.getElementById('gh-repo').value.trim(),
+    token: document.getElementById('gh-token').value.trim(),
+    auto: document.getElementById('gh-auto').checked
+  };
+  localStorage.setItem('gh_cfg', JSON.stringify(ghCfg));
+}
+
+function ghStatus(msg, ok){
+  const el = document.getElementById('gh-status');
+  el.style.display = 'block';
+  el.style.background = ok ? 'rgba(107,255,200,0.08)' : 'rgba(255,95,95,0.1)';
+  el.style.color = ok ? 'var(--future)' : 'var(--danger)';
+  el.style.border = ok ? '1px solid rgba(107,255,200,0.3)' : '1px solid rgba(255,95,95,0.3)';
+  el.innerHTML = msg;
+  if(ok) setTimeout(()=>{ el.style.display='none'; }, 4000);
+}
+
+function ghCheck(){
+  if(!ghCfg.user || !ghCfg.repo || !ghCfg.token){
+    ghStatus('❌ Compila utente, repository e token prima di continuare.', false);
+    return false;
+  }
+  return true;
+}
+
+async function ghCarica(){
+  if(!ghCheck()) return;
+  ghStatus('<span class="spinner"></span> Caricamento da GitHub...', true);
+  try {
+    const url = `https://api.github.com/repos/${ghCfg.user}/${ghCfg.repo}/contents/data.json`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': 'token ' + ghCfg.token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if(res.status === 404){
+      ghStatus('ℹ️ Nessun database trovato su GitHub. Usa "Salva su GitHub" per crearlo.', false);
+      return;
+    }
+    if(!res.ok) throw new Error('Errore HTTP ' + res.status);
+    const file = await res.json();
+    const data = JSON.parse(atob(file.content.replace(/
+/g,'')));
+    if(!data.storico || !data.piano || !data.cfg) throw new Error('File non valido');
+    storico = data.storico;
+    piano = data.piano;
+    cfg = data.cfg;
+    localStorage.setItem('t_storico', JSON.stringify(storico));
+    localStorage.setItem('t_piano', JSON.stringify(piano));
+    localStorage.setItem('t_cfg', JSON.stringify(cfg));
+    loadCfg();
+    render();
+    ghStatus(`✅ Dati caricati: ${storico.length} turni storico, ${piano.length} pianificati.`, true);
+  } catch(err){
+    ghStatus('❌ ' + (err.message || 'Errore di connessione'), false);
+  }
+}
+
+async function ghSalva(silent=false){
+  if(!ghCfg.user || !ghCfg.repo || !ghCfg.token) return;
+  if(!silent) ghStatus('<span class="spinner"></span> Salvataggio su GitHub...', true);
+  try {
+    const url = `https://api.github.com/repos/${ghCfg.user}/${ghCfg.repo}/contents/data.json`;
+    const payload = { versione:1, salvato: new Date().toISOString(), storico, piano, cfg };
+    const body = JSON.stringify(payload, null, 2);
+    const encoded = btoa(unescape(encodeURIComponent(body)));
+
+    // Get current SHA if file exists
+    let sha = null;
+    const check = await fetch(url, {
+      headers: { 'Authorization': 'token ' + ghCfg.token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if(check.ok){ const f = await check.json(); sha = f.sha; }
+
+    const putBody = { message: 'Aggiornamento turni ' + toYMD(new Date()), content: encoded };
+    if(sha) putBody.sha = sha;
+
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + ghCfg.token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+      body: JSON.stringify(putBody)
+    });
+    if(!res.ok) throw new Error('Errore HTTP ' + res.status);
+    if(!silent) ghStatus('✅ Dati salvati su GitHub con successo.', true);
+  } catch(err){
+    if(!silent) ghStatus('❌ ' + (err.message || 'Errore di connessione'), false);
+  }
+}
+
+// Auto-sync wrapper — called after every data change
+async function autoSync(){
+  if(ghCfg.auto && ghCfg.user && ghCfg.repo && ghCfg.token) await ghSalva(true);
 }
 
 // ═══════════════════════ BACKUP / RIPRISTINO ═══════════════════════
