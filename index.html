@@ -16,10 +16,8 @@
 
 <!-- Icona inline SVG come PNG base64 per Android -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230b0c10'/%3E%3Crect x='40' y='40' width='432' height='432' rx='80' fill='%2313141a'/%3E%3Ctext x='256' y='300' font-family='Arial Black,sans-serif' font-size='220' font-weight='900' text-anchor='middle' fill='%23e8ff6b'%3ET%3C/text%3E%3Crect x='100' y='340' width='312' height='28' rx='14' fill='%23e8ff6b' opacity='0.4'/%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230b0c10'/%3E%3Crect x='40' y='40' width='432' height='432' rx='80' fill='%2313141a'/%3E%3Ctext x='256' y='300' font-family='Arial Black,sans-serif' font-size='220' font-weight='900' text-anchor='middle' fill='%23e8ff6b'%3ET%3C/text%3E%3Crect x='100' y='340' width='312' height='28' rx='14' fill='%23e8ff6b' opacity='0.4'/%3E%3C/svg%3E">
 
 <!-- Manifest inline per PWA -->
-<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Turni+di+Lavoro%22%2C%22short_name%22%3A%22Turni%22%2C%22description%22%3A%22Tracciamento+turni+lavorativi%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0c10%22%2C%22theme_color%22%3A%22%230b0c10%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg+xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'+viewBox%3D'0+0+512+512'%253E%253Crect+width%3D'512'+height%3D'512'+rx%3D'100'+fill%3D'%25230b0c10'%2F%253E%253Ctext+x%3D'256'+y%3D'300'+font-family%3D'Arial+Black'+font-size%3D'220'+font-weight%3D'900'+text-anchor%3D'middle'+fill%3D'%2523e8ff6b'%253ET%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1469,27 +1467,7 @@ function resetDati(){
   loadCfg();
   render();
 }
-// ═══════════════════════ SERVICE WORKER (PWA offline) ═══════════════════════
-if('serviceWorker' in navigator){
-  const swCode=`
-    const CACHE='turni-v1';
-    const FILES=[self.location.href];
-    self.addEventListener('install',e=>{
-      e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));
-      self.skipWaiting();
-    });
-    self.addEventListener('activate',e=>{
-      e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
-      self.clients.claim();
-    });
-    self.addEventListener('fetch',e=>{
-      e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match(e.request))));
-    });
-  `;
-  const blob=new Blob([swCode],{type:'application/javascript'});
-  const swUrl=URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl).catch(()=>{});
-}
+// Service worker disabled for GitHub Pages compatibility
 </script>
 </body>
 </html>
