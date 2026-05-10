@@ -734,7 +734,7 @@ document.getElementById('h-data').value=todayYMD();
 document.getElementById('p-data').value=todayYMD();
 document.getElementById('foto-anno').value=new Date().getFullYear();
 loadCfg();
-loadGhCfg();
+try{loadGhCfg();}catch(e){}
 hCheckDate();pCheckDate();
 render();
 
@@ -1334,7 +1334,8 @@ function ghCheck(){
 }
 
 async function ghCarica(){
-  if(!ghCheck()) return;
+  if(!ghCfg.user || !ghCfg.repo || !ghCfg.token){ ghStatus('❌ Compila utente, repository e token prima di continuare.', false); return; }
+  const statusEl = document.getElementById('gh-status'); if(statusEl) statusEl.style.display='none';
   ghStatus('<span class="spinner"></span> Caricamento da GitHub...', true);
   try {
     const url = `https://api.github.com/repos/${ghCfg.user}/${ghCfg.repo}/contents/data.json`;
@@ -1394,9 +1395,11 @@ async function ghSalva(silent=false){
   }
 }
 
-// Auto-sync wrapper — called after every data change
-async function autoSync(){
-  if(ghCfg.auto && ghCfg.user && ghCfg.repo && ghCfg.token) await ghSalva(true);
+// Auto-sync wrapper — called after every data change, never blocks UI
+function autoSync(){
+  if(ghCfg.auto && ghCfg.user && ghCfg.repo && ghCfg.token){
+    setTimeout(()=>{ ghSalva(true).catch(()=>{}); }, 100);
+  }
 }
 
 // ═══════════════════════ BACKUP / RIPRISTINO ═══════════════════════
