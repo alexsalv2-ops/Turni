@@ -1,6 +1,6 @@
 {
   "versione": 1,
-  "salvato": "2026-05-12T18:26:06.951Z",
+  "salvato": "2026-05-12T18:31:20.085Z",
   "storico": [
     {
       "id": 1775402067943,
@@ -849,45 +849,9 @@
       "festivo": null,
       "extra": 0,
       "fromPiano": true
-    },
-    {
-      "id": 1778609902204,
-      "data": "2026-05-11",
-      "tipo": "notte",
-      "ini": "18:00",
-      "fin": "00:00",
-      "ore": 6,
-      "oreNotte": 1.98,
-      "note": "Da foto turni",
-      "festivo": null,
-      "extra": 0,
-      "fromPiano": true
     }
   ],
-  "piano": [
-    {
-      "id": 1778327969567,
-      "data": "2026-05-12",
-      "tipo": "notte",
-      "ini": "20:00",
-      "fin": "00:00",
-      "ore": 4,
-      "oreNotte": 2,
-      "note": "",
-      "festivo": null
-    },
-    {
-      "id": 1778327975499,
-      "data": "2026-05-13",
-      "tipo": "riposo",
-      "ini": "",
-      "fin": "",
-      "ore": 0,
-      "oreNotte": 0,
-      "note": "",
-      "festivo": null
-    }
-  ],
+  "piano": [],
   "cfg": {
     "base": 9.33,
     "fest": 2,
