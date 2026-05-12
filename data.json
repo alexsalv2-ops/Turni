@@ -1,6 +1,6 @@
 {
   "versione": 1,
-  "salvato": "2026-05-12T18:31:20.085Z",
+  "salvato": "2026-05-12T18:40:42.841Z",
   "storico": [
     {
       "id": 1775402067943,
@@ -851,7 +851,19 @@
       "fromPiano": true
     }
   ],
-  "piano": [],
+  "piano": [
+    {
+      "id": 1778611242739,
+      "data": "2026-05-12",
+      "tipo": "mattino",
+      "ini": "",
+      "fin": "",
+      "ore": 0,
+      "oreNotte": 0,
+      "note": "",
+      "festivo": null
+    }
+  ],
   "cfg": {
     "base": 9.33,
     "fest": 2,
