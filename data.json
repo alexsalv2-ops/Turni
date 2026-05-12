@@ -1,6 +1,6 @@
 {
   "versione": 1,
-  "salvato": "2026-05-12T18:26:05.557Z",
+  "salvato": "2026-05-12T18:26:06.951Z",
   "storico": [
     {
       "id": 1775402067943,
@@ -883,17 +883,6 @@
       "ini": "",
       "fin": "",
       "ore": 0,
-      "oreNotte": 0,
-      "note": "",
-      "festivo": null
-    },
-    {
-      "id": 1778328017077,
-      "data": "2026-05-14",
-      "tipo": "pomeriggio",
-      "ini": "13:00",
-      "fin": "18:00",
-      "ore": 5,
       "oreNotte": 0,
       "note": "",
       "festivo": null
