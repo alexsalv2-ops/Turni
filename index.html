@@ -1248,41 +1248,70 @@ Se l'orario di fine è 24:00 scrivi "24:00".`;
         throw new Error('Nessun turno trovato per "' + nome + '"');
       }
 
-      let inseriti = 0, saltati = 0;
+      // Build preview of turns to insert
+      const GIORNI_NOME = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+      const MESI_NOME = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+      const turniDaInserire = [];
+      const turniSaltati = [];
+
       for(const t of result.turni){
         const mese = String(t.mese).padStart(2,'0');
         const giorno = String(t.giorno).padStart(2,'0');
         const dataStr = `${result.anno}-${mese}-${giorno}`;
-
-        if(piano.find(p => p.data === dataStr)){ saltati++; continue; }
-
+        // Check duplicate: same date AND same start time
+        const dup = piano.find(p => p.data === dataStr && p.ini === t.inizio);
+        if(dup){ turniSaltati.push(dataStr); continue; }
         const oreCalc = t.fine === '24:00' ? calcOre(t.inizio, '23:59') + (1/60) : calcOre(t.inizio, t.fine);
         const oreNt = calcOreNotte(t.inizio, t.fine === '24:00' ? '23:59' : t.fine);
         const fest = isFestivo(dataStr);
         const h = parseInt(t.inizio.split(':')[0]);
         let tipo = h >= 18 || h < 6 ? 'notte' : h >= 14 ? 'pomeriggio' : 'mattino';
-
-        piano.push({
-          id: Date.now() + inseriti,
+        const d = new Date(dataStr + 'T12:00:00');
+        turniDaInserire.push({
+          id: Date.now() + turniDaInserire.length,
           data: dataStr, tipo,
           ini: t.inizio,
           fin: t.fine === '24:00' ? '00:00' : t.fine,
           ore: +oreCalc.toFixed(2),
           oreNotte: oreNt,
           note: 'Da ' + (isPDF ? 'PDF' : 'foto') + ' turni',
-          festivo: fest ? fest.nome : null
+          festivo: fest ? fest.nome : null,
+          _label: `${GIORNI_NOME[d.getDay()]} ${giorno} ${MESI_NOME[t.mese-1]} — ${t.inizio}→${t.fine}`
         });
-        inseriti++;
       }
 
-      localStorage.setItem('t_piano', JSON.stringify(piano));
-      autoSync();
-      render();
+      if(!turniDaInserire.length){
+        status.innerHTML = `ℹ️ Nessun turno nuovo da inserire per <b>${nome}</b> — tutti già presenti.`;
+        status.style.background='rgba(107,255,200,0.08)';
+        status.style.color='var(--future)';
+        status.style.border='1px solid rgba(107,255,200,0.3)';
+        input.value=''; return;
+      }
 
-      let msg = `✅ Inseriti <b>${inseriti}</b> turni per <b>${nome}</b>.`;
-      if(saltati) msg += ` (${saltati} già presenti, saltati)`;
-      msg += '<br><small style="color:var(--muted)">Controlla i turni nel calendario e modificali se necessario.</small>';
-      status.innerHTML = msg;
+      // Show confirmation UI
+      const saltatiTxt = turniSaltati.length ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:6px;">${turniSaltati.length} già presenti, verranno saltati.</div>` : '';
+      const lista = turniDaInserire.map(t =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.85rem;color:var(--text)">${t._label}</span>
+          ${t.festivo?`<span style="font-size:0.65rem;color:var(--festivo);background:rgba(255,159,67,0.15);padding:1px 6px;border-radius:10px;">🎉</span>`:''}
+          ${t.oreNotte>0?`<span style="font-size:0.65rem;color:var(--night);background:rgba(139,124,248,0.15);padding:1px 6px;border-radius:10px;">🌙</span>`:''}
+        </div>`
+      ).join('');
+
+      status.style.background='rgba(107,255,200,0.06)';
+      status.style.color='var(--future)';
+      status.style.border='1px solid rgba(107,255,200,0.3)';
+      status.innerHTML = `
+        <div style="font-weight:600;margin-bottom:8px;">✅ Trovati <b>${turniDaInserire.length}</b> turni per <b>${nome}</b>:</div>
+        <div style="max-height:200px;overflow-y:auto;margin-bottom:10px;">${lista}</div>
+        ${saltatiTxt}
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button onclick="confermaTurni()" style="flex:1;padding:9px;background:var(--future);color:#0b0c10;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-weight:800;font-size:0.82rem;cursor:pointer;">✅ CONFERMA</button>
+          <button onclick="annullaTurni()" style="flex:1;padding:9px;background:var(--s2);color:var(--text);border:1px solid var(--border);border-radius:8px;font-family:'DM Mono',monospace;font-size:0.82rem;cursor:pointer;">✕ Annulla</button>
+        </div>`;
+
+      // Store pending turns globally
+      window._turniPendenti = turniDaInserire;
 
     } catch(err) {
       status.style.background = 'rgba(255,95,95,0.1)';
@@ -1429,6 +1458,28 @@ function autoSync(){
   if(ghCfg.auto && ghCfg.user && ghCfg.repo && ghCfg.token){
     setTimeout(()=>{ ghSalva(true).catch(()=>{}); }, 100);
   }
+}
+
+// ═══════════════════════ CONFERMA TURNI DA FOTO ═══════════════════════
+function confermaTurni(){
+  const turni = window._turniPendenti || [];
+  if(!turni.length) return;
+  // Remove _label before saving
+  turni.forEach(t => { delete t._label; piano.push(t); });
+  window._turniPendenti = [];
+  localStorage.setItem('t_piano', JSON.stringify(piano));
+  autoSync();
+  render();
+  const status = document.getElementById('foto-status');
+  status.innerHTML = `✅ <b>${turni.length}</b> turni inseriti nel piano!`;
+  showToast(`✅ ${turni.length} turni inseriti nel piano!`, true);
+  setTimeout(()=>{ if(status) status.style.display='none'; }, 4000);
+}
+
+function annullaTurni(){
+  window._turniPendenti = [];
+  const status = document.getElementById('foto-status');
+  status.style.display = 'none';
 }
 
 // ═══════════════════════ BACKUP / RIPRISTINO ═══════════════════════
