@@ -1194,32 +1194,37 @@ async function importaDaFoto(input){
     status.innerHTML = '<span class="spinner"></span> Analisi del foglio turni in corso...';
 
     try {
-      const prompt = `Questa è una foto/PDF di un foglio turni settimanale.
-Devi estrarre i turni lavorativi della persona chiamata "${nome}".
+      const prompt = `Sei un lettore preciso di fogli turni. Analizza questa immagine con molta attenzione.
 
-Il foglio ha righe per ogni dipendente e colonne per ogni fascia oraria (es. 09:00-10:00, 10:00-11:00, ecc.).
-Quando una cella ha "1" significa che quella persona lavora in quella fascia oraria.
-I giorni sono indicati con un numero (es. 11, 12, 13...) e il nome del giorno (LUNEDÌ, MARTEDÌ, ecc.).
+STRUTTURA DEL FOGLIO:
+- Ogni giorno ha una sezione con il numero del giorno (es. 11) e il nome (LUNEDÌ, MARTEDÌ...)
+- Sotto ogni giorno ci sono righe per ogni dipendente (Giulia, Enzo, Alessio, Mino, Alessia, Cristina...)
+- Le colonne rappresentano fasce orarie di 1 ora: 09:00-10:00, 10:00-11:00, 11:00-12:00, ecc. fino a 23:00-24:00
+- Un "1" in una cella significa che quel dipendente lavora SOLO quell'ora specifica
 
-Per ogni giorno in cui "${nome}" ha almeno un "1", determina:
-- Il numero del giorno (es. 11)
-- Il mese (leggilo dal documento o usa quello corrente)
-- Il giorno della settimana (es. LUNEDÌ)
-- L'orario di inizio (prima fascia con 1)
-- L'orario di fine (ultima fascia con 1, usando l'orario di fine di quella fascia)
+COME LEGGERE GLI ORARI:
+- Guarda SOLO la riga di "${nome}"
+- Trova la PRIMA colonna con "1" → è l'orario di INIZIO (usa l'orario di sinistra della fascia, es. se "1" è nella colonna "13:00-14:00" allora inizio = 13:00)
+- Trova l'ULTIMA colonna con "1" → è l'orario di FINE (usa l'orario di DESTRA della fascia, es. se l'ultimo "1" è nella colonna "17:00-18:00" allora fine = 18:00)
+- Se non ci sono "1" in un giorno, il dipendente è in riposo
 
-Rispondi SOLO con un JSON valido, nessun testo prima o dopo, in questo formato:
+ESEMPIO: se "${nome}" ha "1" nelle colonne 13:00-14:00, 14:00-15:00, 15:00-16:00 → inizio=13:00, fine=16:00
+
+Analizza OGNI giorno visibile nel foglio per "${nome}" e rispondi SOLO con questo JSON (nessun testo prima o dopo):
 {
   "nome_trovato": "${nome}",
   "anno": ${annoInput},
   "turni": [
-    {"giorno": 11, "mese": 5, "giorno_settimana": "LUNEDÌ", "inizio": "18:00", "fine": "24:00"},
+    {"giorno": 11, "mese": 5, "giorno_settimana": "LUNEDÌ", "inizio": "18:00", "fine": "20:00"},
     {"giorno": 12, "mese": 5, "giorno_settimana": "MARTEDÌ", "inizio": "20:00", "fine": "24:00"}
   ]
 }
 
-Se un giorno non ha nessun "1" per "${nome}", NON includerlo.
-Se l'orario di fine è 24:00 scrivi "24:00".`;
+IMPORTANTE:
+- L'orario di fine è l'orario di DESTRA dell'ultima fascia con "1", NON mezzanotte
+- Se l'ultimo "1" è nella colonna "23:00-24:00" allora fine = "24:00"
+- Se "${nome}" non ha nessun "1" in un giorno, NON includerlo nell'array
+- Indica il mese corretto leggendolo dal foglio o usa il mese attuale`;
 
       // Build content array depending on file type
       const fileContent = isPDF
