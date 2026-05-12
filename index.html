@@ -1262,10 +1262,17 @@ Se l'orario di fine è 24:00 scrivi "24:00".`;
         const dup = piano.find(p => p.data === dataStr && p.ini === t.inizio);
         if(dup){ turniSaltati.push(dataStr); continue; }
         const oreCalc = t.fine === '24:00' ? calcOre(t.inizio, '23:59') + (1/60) : calcOre(t.inizio, t.fine);
-        const oreNt = calcOreNotte(t.inizio, t.fine === '24:00' ? '23:59' : t.fine);
+        const finePerNotte = t.fine === '24:00' ? '23:59' : t.fine;
+        const oreNt = calcOreNotte(t.inizio, finePerNotte);
         const fest = isFestivo(dataStr);
         const h = parseInt(t.inizio.split(':')[0]);
-        let tipo = h >= 18 || h < 6 ? 'notte' : h >= 14 ? 'pomeriggio' : 'mattino';
+        // Tipo basato sull'orario di inizio
+        let tipo;
+        if(h >= 22 || h < 6) tipo = 'notte';
+        else if(h >= 18) tipo = 'notte';
+        else if(h >= 14) tipo = 'pomeriggio';
+        else if(h >= 6) tipo = 'mattino';
+        else tipo = 'mattino';
         const d = new Date(dataStr + 'T12:00:00');
         turniDaInserire.push({
           id: Date.now() + turniDaInserire.length,
@@ -1290,11 +1297,13 @@ Se l'orario di fine è 24:00 scrivi "24:00".`;
 
       // Show confirmation UI
       const saltatiTxt = turniSaltati.length ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:6px;">${turniSaltati.length} già presenti, verranno saltati.</div>` : '';
+      const tipoIcon = {mattino:'☀️',pomeriggio:'🌤',notte:'🌙',riposo:'💤'};
       const lista = turniDaInserire.map(t =>
-        `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:0.85rem;color:var(--text)">${t._label}</span>
+        `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:var(--text);flex:1;">${t._label}</span>
+          <span style="font-size:0.72rem;">${tipoIcon[t.tipo]||''}</span>
           ${t.festivo?`<span style="font-size:0.65rem;color:var(--festivo);background:rgba(255,159,67,0.15);padding:1px 6px;border-radius:10px;">🎉</span>`:''}
-          ${t.oreNotte>0?`<span style="font-size:0.65rem;color:var(--night);background:rgba(139,124,248,0.15);padding:1px 6px;border-radius:10px;">🌙</span>`:''}
+          ${t.oreNotte>0.5?`<span style="font-size:0.65rem;color:var(--night);background:rgba(139,124,248,0.15);padding:1px 6px;border-radius:10px;">🌙 ${t.oreNotte.toFixed(1)}h</span>`:''}
         </div>`
       ).join('');
 
