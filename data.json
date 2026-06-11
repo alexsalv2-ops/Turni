@@ -1,6 +1,6 @@
 {
   "versione": 1,
-  "salvato": "2026-06-11T13:39:36.007Z",
+  "salvato": "2026-06-11T13:40:28.543Z",
   "storico": [
     {
       "id": 1775402067943,
@@ -1274,6 +1274,17 @@
       "fin": "00:00",
       "ore": 6,
       "oreNotte": 2,
+      "note": "",
+      "festivo": null
+    },
+    {
+      "id": 1781185228440,
+      "data": "2026-06-14",
+      "tipo": "mattino",
+      "ini": "10:00",
+      "fin": "17:00",
+      "ore": 7,
+      "oreNotte": 0,
       "note": "",
       "festivo": null
     }
